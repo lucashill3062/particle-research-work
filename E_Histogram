@@ -1,0 +1,77 @@
+#include <iostream>
+#include <cmath>
+
+// ROOT Header Files
+#include "TFile.h"
+#include "TTree.h"
+#include "TH1F.h"
+#include "TCanvas.h"
+#include "TApplication.h"
+
+// Pythia Header File (Needed to interpret the event objects)
+#include "Pythia8/Pythia.h"
+
+using namespace Pythia8;
+
+int main(int argc, char* argv[]) {
+
+  // Create the ROOT application environment
+  TApplication theApp("hist", &argc, argv);
+
+  TFile* inFile = TFile::Open("pytree.root", "READ");
+  if (!inFile || inFile->IsZombie()) {
+    std::cerr << "Error: Could not open pytree.root!" << std::endl;
+    return 1;
+  }
+
+  // 2. Extract the Data Tree
+  TTree* tree = (TTree*)inFile->Get("T");
+
+  // 3. Set up a placeholder variable to read data back out of the tree
+  std::vector<double>* e = nullptr;
+  tree->SetBranchAddress("e", &e);
+
+  // 4. Initialize the Canvas and the E Histogram
+  TCanvas* c1 = new TCanvas("c1", "Pythia Analysis", 800, 600);
+  TH1F* eHist = new TH1F("eHist", "Final State, Charged E;E [GeV];Entries", 100, 0.0, 100);
+
+  // 5. Loop over all simulated events inside the ROOT tree
+  Long64_t nEvents = tree->GetEntries();
+  std::vector<double> *e_vector = nullptr;
+
+  
+tree->SetBranchAddress("e", &e_vector);
+
+for (Long64_t i = 0; i < tree->GetEntries(); ++i) {
+    tree->GetEntry(i);
+    for (double e_val : *e_vector) {
+        eHist->Fill(e_val); // Draw directly into your plot!
+    }
+}
+
+  // 6. Draw the plot
+  c1->SetLogy(); // Set Y axis to a log scale so high pT tail is visible
+  eHist->Draw();
+  c1->SaveAs("/Users/lucashill/Downloads/Python/Klay_Lab_Work/e_distribution.png");
+
+
+  std::cout << "\nAnalysis complete. Close the graphical window to quit.\n";
+  theApp.Run();
+
+  // Clean up opened file pointers safely
+  inFile->Close();
+  delete inFile;
+  
+  return 0;
+}
+
+
+
+
+
+// for the future: do pi+- p+- k+- pT spectra.
+// Pseudorapidity spectra: =-ln(tan(theta/2)) take a look to see if you can get this [i].eta or whatever. do this for all.
+// multiplictiy distribution: number of charged particles per event: loop over the ebvent and count how mant states you have. Tick up by 1 per event. Do a large #
+//
+//check if pythia does decays. look at neutral pions (decay into 2 photons). M2 = E2-P2 -> (E1+E2)2 - (p1+p2)2. = 2E1E2cos(theta)
+// if you compare the # to the inbariant mass, you will get a little peak.  Nested for loop to compare all photons to eachother.
